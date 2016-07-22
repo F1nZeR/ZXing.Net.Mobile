@@ -252,10 +252,15 @@ namespace ZXing.Mobile
             camera.SetPreviewDisplay (this.Holder);
             camera.StartPreview ();
 
+            parameters.ExposureCompensation = parameters.MaxExposureCompensation;
+            if (parameters.IsAutoExposureLockSupported)
+                parameters.AutoExposureLock = false;
+            camera.SetParameters(parameters);
+
             PerformanceCounter.Stop (perf, "Setup Camera Parameters took {0}ms");
 
             // Docs suggest if Auto or Macro modes, we should invoke AutoFocus at least once
-            var currentFocusMode = camera.GetParameters ().FocusMode;
+            var currentFocusMode = parameters.FocusMode;
             if (currentFocusMode == Camera.Parameters.FocusModeAuto 
                || currentFocusMode == Camera.Parameters.FocusModeMacro)
                 AutoFocus ();

@@ -8,14 +8,13 @@ namespace ZXing.Mobile.CameraAccess
     public class CameraAnalyzer
     {
         private readonly CameraController _cameraController;
-        private readonly MobileBarcodeScanningOptions _scanningOptions;
         private DateTime _lastPreviewAnalysis = DateTime.UtcNow;
         private bool _wasScanned;
-        private BarcodeReaderGeneric<FastJavaByteArrayYUVLuminanceSource> _barcodeReader;
+        private readonly IScannerSessionHost _scannerHost;
 
-        public CameraAnalyzer(CameraController cameraController, MobileBarcodeScanningOptions scanningOptions)
+        public CameraAnalyzer(CameraController cameraController, IScannerSessionHost scannerHost)
         {
-            _scanningOptions = scanningOptions;
+            _scannerHost = scannerHost;
             _cameraController = cameraController;
 
             Torch = new Torch(_cameraController);
@@ -73,11 +72,11 @@ namespace ZXing.Mobile.CameraAccess
 					return false;
 				
                 var elapsedTimeMs = (DateTime.UtcNow - _lastPreviewAnalysis).TotalMilliseconds;
-				if (elapsedTimeMs < _scanningOptions.DelayBetweenAnalyzingFrames)
+				if (elapsedTimeMs < _scannerHost.ScanningOptions.DelayBetweenAnalyzingFrames)
 					return false;
 				
 				// Delay a minimum between scans
-				if (_wasScanned && elapsedTimeMs < _scanningOptions.DelayBetweenContinuousScans)
+				if (_wasScanned && elapsedTimeMs < _scannerHost.ScanningOptions.DelayBetweenContinuousScans)
 					return false;
 				
 				return true;
@@ -98,7 +97,7 @@ namespace ZXing.Mobile.CameraAccess
             }
             catch (Exception ex)
             {
-                Android.Util.Log.Debug(MobileBarcodeScanner.TAG, $"DecodeFrame exception occured: {ex.Message}");
+                Android.Util.Log.Debug(MobileBarcodeScanner.TAG, $"DecodeFrame exception occurred: {ex.Message}");
             }
         }
 
@@ -109,7 +108,7 @@ namespace ZXing.Mobile.CameraAccess
             var width = cameraParameters.PreviewSize.Width;
             var height = cameraParameters.PreviewSize.Height;
 
-            InitBarcodeReaderIfNeeded();
+            var barcodeReader = _scannerHost.ScanningOptions.BuildBarcodeReader();
 
             // use last value for performance gain
             var cDegrees = _cameraController.LastCameraDisplayOrientationDegree;
@@ -128,7 +127,7 @@ namespace ZXing.Mobile.CameraAccess
 			
             var luminanceSource = new FastJavaByteArrayYUVLuminanceSource(fastArray, width, height, 0, 0, width, height); // _area.Left, _area.Top, _area.Width, _area.Height);
             
-            result = _barcodeReader.Decode(luminanceSource);
+            result = barcodeReader.Decode(luminanceSource);
 
             PerformanceCounter.Stop(start, "Decode Time: {0} ms (width: " + width + ", height: " + height + ", degrees: " + cDegrees + ", rotate: " + rotate + ")");
 
@@ -140,33 +139,8 @@ namespace ZXing.Mobile.CameraAccess
                 BarcodeFound?.Invoke(this, result);
             }
             else
-                AutoFocus();
-        }
-
-        private void InitBarcodeReaderIfNeeded()
-        {
-            if (_barcodeReader != null)
-                return;
-
-            _barcodeReader = new BarcodeReaderGeneric<FastJavaByteArrayYUVLuminanceSource>();
-
-            if (_scanningOptions.TryHarder.HasValue)
-                _barcodeReader.Options.TryHarder = _scanningOptions.TryHarder.Value;
-            if (_scanningOptions.PureBarcode.HasValue)
-                _barcodeReader.Options.PureBarcode = _scanningOptions.PureBarcode.Value;
-            if (!string.IsNullOrEmpty(_scanningOptions.CharacterSet))
-                _barcodeReader.Options.CharacterSet = _scanningOptions.CharacterSet;
-            if (_scanningOptions.TryInverted.HasValue)
-                _barcodeReader.TryInverted = _scanningOptions.TryInverted.Value;
-            if (_scanningOptions.UseCode39ExtendedMode.HasValue)
-                _barcodeReader.Options.UseCode39ExtendedMode = _scanningOptions.UseCode39ExtendedMode.Value;
-
-            if (_scanningOptions.PossibleFormats != null && _scanningOptions.PossibleFormats.Count > 0)
             {
-                _barcodeReader.Options.PossibleFormats = new List<BarcodeFormat>();
-
-                foreach (var pf in _scanningOptions.PossibleFormats)
-                    _barcodeReader.Options.PossibleFormats.Add(pf);
+                AutoFocus();
             }
         }
     }

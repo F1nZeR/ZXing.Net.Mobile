@@ -5,13 +5,19 @@ using ZXing;
 
 namespace ZXing.Mobile
 {
-    public class CVPixelBufferARGB32LuminanceSource : BaseLuminanceSource
+    public class CVPixelBufferBGRA32LuminanceSource : BaseLuminanceSource
     {
-        public unsafe CVPixelBufferARGB32LuminanceSource(byte* cvPixelByteArray, int cvPixelByteArrayLength, int width, int height)
+        public unsafe CVPixelBufferBGRA32LuminanceSource(byte* cvPixelByteArray, int cvPixelByteArrayLength, int width, int height)
             : base(width, height)
         {
             CalculateLuminance(cvPixelByteArray, cvPixelByteArrayLength);
         }
+
+		public CVPixelBufferBGRA32LuminanceSource (byte[] luminances, int width, int height) :
+			base (luminances, width, height)
+		{
+			
+		}
 
         unsafe void CalculateLuminance(byte* rgbRawBytes, int bytesLen)
         {
@@ -29,7 +35,7 @@ namespace ZXing.Mobile
 
         protected override LuminanceSource CreateLuminanceSource(byte[] newLuminances, int width, int height)
         {
-            return new ZXing.RGBLuminanceSource (luminances, width, height, RGBLuminanceSource.BitmapFormat.ARGB32);
+			return new CVPixelBufferBGRA32LuminanceSource(newLuminances, width, height);
         }
     }
 }

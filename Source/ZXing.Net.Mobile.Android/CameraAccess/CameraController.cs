@@ -15,25 +15,24 @@ namespace ZXing.Mobile.CameraAccess
     public class CameraController
     {
         private readonly Context _context;
-        private readonly MobileBarcodeScanningOptions _scanningOptions;
         private readonly ISurfaceHolder _holder;
         private readonly CameraEventsListener _cameraEventListener;
         private int _cameraId;
         private bool _autoFocusCycleDone = true;
         private bool _useContinousFocus;
+		IScannerSessionHost _scannerHost;
 
-        public CameraController(SurfaceView surfaceView, CameraEventsListener cameraEventListener,
-            MobileBarcodeScanningOptions scanningOptions)
+        public CameraController(SurfaceView surfaceView, CameraEventsListener cameraEventListener, IScannerSessionHost scannerHost)
         {
             SurfaceView = surfaceView;
 
             _context = surfaceView.Context;
-            _scanningOptions = scanningOptions;
             _holder = surfaceView.Holder;
 
             _cameraEventListener = cameraEventListener;
             _cameraEventListener.AutoFocus += (s, e) => 
                 _autoFocusCycleDone = true;
+			_scannerHost = scannerHost;
         }
 
         public SurfaceView SurfaceView { get; }
@@ -178,8 +177,8 @@ namespace ZXing.Mobile.CameraAccess
 
                     var whichCamera = CameraFacing.Back;
 
-                    if (_scanningOptions.UseFrontCameraIfAvailable.HasValue &&
-                        _scanningOptions.UseFrontCameraIfAvailable.Value)
+					if (_scannerHost.ScanningOptions.UseFrontCameraIfAvailable.HasValue &&
+                        _scannerHost.ScanningOptions.UseFrontCameraIfAvailable.Value)
                         whichCamera = CameraFacing.Front;
 
                     for (var i = 0; i < numCameras; i++)
@@ -244,7 +243,7 @@ namespace ZXing.Mobile.CameraAccess
             });
 
             // Try and get a desired resolution from the options selector
-            var resolution = _scanningOptions.GetResolution(availableResolutions.ToList());
+            var resolution = _scannerHost.ScanningOptions.GetResolution(availableResolutions.ToList());
 
             // If the user did not specify a resolution, let's try and find a suitable one
             if (resolution == null)

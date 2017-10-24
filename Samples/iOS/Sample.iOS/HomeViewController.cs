@@ -1,15 +1,9 @@
 using System;
 using MonoTouch.Dialog;
 
-#if __UNIFIED__
 using Foundation;
 using CoreGraphics;
 using UIKit;
-#else
-using MonoTouch.Foundation;
-using MonoTouch.UIKit;
-using CGRect = System.Drawing.RectangleF;
-#endif
 
 using ZXing;
 using ZXing.Mobile;
@@ -60,7 +54,7 @@ namespace Sample.iOS
                         opt.DelayBetweenContinuousScans = 3000;
 
                         //Start scanning
-                        scanner.ScanContinuously (opt, true, HandleScanResult);
+                        scanner.ScanContinuously (opt, false, HandleScanResult);
                     }),
 
                     new StyledStringElement ("Scan with Custom View", async () => {
